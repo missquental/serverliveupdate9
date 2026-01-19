@@ -983,19 +983,34 @@ def main():
             selected_video = None
             st.info("No video files found in current directory")
         
-        # Video upload
-        uploaded_file = st.file_uploader("Or upload new video", type=['mp4', '.flv', '.avi', '.mov', '.mkv'])
-        
-        if uploaded_file:
-            with open(uploaded_file.name, "wb") as f:
-                f.write(uploaded_file.read())
-            st.success("✅ Video uploaded successfully!")
-            video_path = uploaded_file.name
-            log_to_database(st.session_state['session_id'], "INFO", f"Video uploaded: {uploaded_file.name}")
-        elif selected_video:
-            video_path = selected_video
-        else:
-            video_path = None
+        # Video upload - MODIFIED FOR MULTIPLE UPLOADS
+uploaded_files = st.file_uploader("Or upload new videos", type=['mp4', '.flv', '.avi', '.mov', '.mkv'], accept_multiple_files=True)
+
+if uploaded_files:
+    uploaded_video_paths = []
+    for uploaded_file in uploaded_files:
+        with open(uploaded_file.name, "wb") as f:
+            f.write(uploaded_file.read())
+        st.success(f"✅ Video {uploaded_file.name} uploaded successfully!")
+        uploaded_video_paths.append(uploaded_file.name)
+        log_to_database(st.session_state['session_id'], "INFO", f"Video uploaded: {uploaded_file.name}")
+    
+    # Store all uploaded video paths in session state
+    st.session_state['uploaded_video_paths'] = uploaded_video_paths
+    
+    # Use the first video as default
+    if uploaded_video_paths:
+        video_path = uploaded_video_paths[0]
+        st.info(f"Using first uploaded video: {video_path}")
+elif selected_video:
+    video_path = selected_video
+    # Clear uploaded videos session state when using selected video
+    if 'uploaded_video_paths' in st.session_state:
+        del st.session_state['uploaded_video_paths']
+else:
+    video_path = None
+    if 'uploaded_video_paths' in st.session_state:
+        del st.session_state['uploaded_video_paths']
         
         # YouTube Authentication Status
         if 'youtube_service' in st.session_state and 'channel_info' in st.session_state:
